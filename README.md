@@ -1,97 +1,178 @@
-EcoStep: Professional Scope 1, 2 & 3 Carbon Audit Platform 🌿
+# 🌿 EcoStep – Professional Scope 1, 2 & 3 Carbon Audit Platform
 
-An academic-grade, full-stack application built to track and calculate personal and commercial transport emissions with maximum mathematical precision. It uses the Tier 3 Fuel-Based Method under a comprehensive Well-to-Wheel (WTW) boundary framework.
+EcoStep is an **academic-grade full-stack carbon accounting platform** designed to calculate and track **personal and commercial transportation emissions** with high scientific accuracy.
 
-📊 Scientific Framework & Mathematical Models
+Unlike traditional carbon calculators that rely on generic distance-based estimates, EcoStep prioritizes **fuel-based accounting** and derives actual fuel or electricity consumption whenever possible. The platform follows the **Tier 3 Fuel-Based Methodology** within a comprehensive **Well-to-Wheel (WTW)** emissions boundary framework.
 
-EcoStep completely avoids generic distance-based proxies, instead prioritizing direct fuel metrics or deriving exact fuel/electricity volume from raw travel streams.
+---
 
-1. The Well-to-Wheel (WTW) Boundary
+## 🚀 Key Features
 
-Every calculation separates emissions into:
+* ✅ Scope 1, Scope 2, and Scope 3 carbon accounting
+* ✅ Tier 3 fuel-based emission calculations
+* ✅ Well-to-Wheel (WTW) lifecycle assessment
+* ✅ Support for gasoline, diesel, aviation fuel, and electricity
+* ✅ Payload-adjusted fuel consumption modeling
+* ✅ FastAPI backend with React + Tailwind frontend
+* ✅ Scientifically referenced emission factors
+* ✅ Personal and commercial transport auditing
 
-Well-to-Tank (WTT): Upstream emissions from fuel extraction, refining, transport, and grid distribution losses.
+---
 
-Tank-to-Wheel (TTW): Direct tailpipe emissions from combustion during vehicle operation.
+# 📊 Scientific Framework
 
-$$\text{WTW Emission Factor } (EF_{\text{WTW}}) = EF_{\text{WTT}} + EF_{\text{TTW}}$$
+## 1. Well-to-Wheel (WTW) Boundary
 
-2. Tier 3 Fuel-Based Equation
+EcoStep separates emissions into two distinct stages:
 
-To account for $CO_2$, $CH_4$, and $N_2O$, we compute Carbon Dioxide Equivalents ($CO_2e$) using IPCC AR5 100-year Global Warming Potentials:
+### Well-to-Tank (WTT)
 
-$$\text{Total } CO_2e \text{ (kg)} = \sum \left[ \text{Fuel Consumed } (L \text{ or } kWh) \times EF_{\text{WTW, i}} \right]$$
+Emissions generated during:
 
-3. Derived Fuel Volume (Distance Fallback)
+* Fuel extraction
+* Refining
+* Transportation
+* Electricity generation and grid losses
 
-If the user provides only distance, EcoStep applies payload-adjusted consumption curves to derive the raw fuel volume:
+### Tank-to-Wheel (TTW)
 
-$$\text{Fuel Volume (L)} = \left( \frac{\text{Distance (km)} \times \text{Fuel Efficiency (L/100km)}}{100} \right)$$
+Direct emissions produced during vehicle operation and fuel combustion.
 
-🧪 Emission Factors (EF) Reference Table
+### Formula
 
-All calculations in the FastAPI backend utilize the following vetted values (UK DEFRA 2025 & US EPA GHG Hub):
+```text
+WTW Emission Factor = WTT Emission Factor + TTW Emission Factor
+```
 
-Fuel Type
+---
 
-TTW Factor ($kg\ CO_2e/L$)
+## 2. Tier 3 Fuel-Based Carbon Accounting
 
-WTT Factor ($kg\ CO_2e/L$)
+To account for multiple greenhouse gases including:
 
-Total WTW ($kg\ CO_2e/L$)
+* Carbon Dioxide (CO₂)
+* Methane (CH₄)
+* Nitrous Oxide (N₂O)
 
-Gasoline (E10)
+EcoStep converts emissions into **Carbon Dioxide Equivalent (CO₂e)** using **IPCC AR5 100-Year Global Warming Potentials**.
 
-$2.20311$
+### Formula
 
-$0.61280$
+```text
+Total CO₂e (kg) =
+Σ [ Fuel Consumed (L or kWh) × WTW Emission Factor ]
+```
 
-$2.81591$
+---
 
-Diesel (B7)
+## 3. Distance-Based Fuel Derivation
 
-$2.51214$
+When direct fuel data is unavailable, EcoStep estimates fuel consumption using validated efficiency models.
 
-$0.64150$
+### Formula
 
-$3.15364$
+```text
+Fuel Volume (L) =
+(Distance (km) × Fuel Efficiency (L/100km)) / 100
+```
 
-Jet A-1 Aviation
+This allows distance-only inputs to be converted into scientifically meaningful fuel-based emissions.
 
-$2.54000$
+---
 
-$0.78500$
+# 🧪 Emission Factors Reference
 
-$3.32500$
+Emission factors are based on:
 
-Electricity ($kg\ CO_2e/kWh$)
+* UK DEFRA 2025 Guidelines
+* US EPA Greenhouse Gas Emissions Hub
 
-$0.00000$ (Tailpipe)
+| Fuel Type             | TTW Factor (kg CO₂e/L) | WTT Factor (kg CO₂e/L) | Total WTW (kg CO₂e/L) |
+| --------------------- | ---------------------- | ---------------------- | --------------------- |
+| Gasoline (E10)        | 2.20311                | 0.61280                | 2.81591               |
+| Diesel (B7)           | 2.51214                | 0.64150                | 3.15364               |
+| Jet A-1 Aviation Fuel | 2.54000                | 0.78500                | 3.32500               |
 
-$0.38550$ (Grid WTW)
+### Electricity
 
-$0.38550$
+| Energy Source             | TTW Factor | WTT Factor | Total WTW |
+| ------------------------- | ---------- | ---------- | --------- |
+| Electricity (kg CO₂e/kWh) | 0.00000    | 0.38550    | 0.38550   |
 
-🛠️ Installation & Setup
+---
 
-Backend (FastAPI)
+# 🏗️ Tech Stack
 
-Initialize Python environment:
+### Frontend
 
+* React
+* Tailwind CSS
+* JavaScript
+
+### Backend
+
+* FastAPI
+* Python
+* Pydantic
+* HTTPX
+* Uvicorn
+
+---
+
+# ⚙️ Installation & Setup
+
+## Backend (FastAPI)
+
+### Create Virtual Environment
+
+```bash
 cd backend
+
 python -m venv venv
+
+# Linux / macOS
 source venv/bin/activate
+
+# Windows
+venv\Scripts\activate
+```
+
+### Install Dependencies
+
+```bash
 pip install fastapi uvicorn httpx pydantic
+```
 
+### Run Backend
 
-Start the service:
-
+```bash
 python main.py
+```
 
+---
 
-Frontend (React & Tailwind)
+## Frontend (React + Tailwind)
 
-Install dependencies and start:
+### Install Dependencies
 
+```bash
 npm install
+```
+
+### Start Development Server
+
+```bash
 npm run start
+```
+
+---
+
+# 🎯 Mission
+
+EcoStep aims to make **professional-grade carbon accounting accessible to everyone** by combining scientific rigor, transparent methodologies, and modern web technologies.
+
+By using fuel-based calculations, lifecycle emission boundaries, and verified emission factors, EcoStep delivers results that are significantly more accurate than traditional distance-only carbon calculators.
+
+---
+
+**Built for sustainability, transparency, and data-driven climate action. 🌍**
