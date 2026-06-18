@@ -4,10 +4,14 @@
   "private": true,
   "description": "FILEPATH: frontend/package.json - React dependencies and launch configurations",
   "dependencies": {
+    "@ericblade/quagga2": "^1.12.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "^5.0.1"
+    "react-leaflet": "^4.2.1",
+    "react-scripts": "^5.0.1",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.18",
