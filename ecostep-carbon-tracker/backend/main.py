@@ -231,7 +231,7 @@ async def calculate_route_wtw(payload: RouteAuditRequest):
     if not key:
         return process_fallback_wtw_route(payload.origin, payload.destination, transport, payload.custom_efficiency, payload.payload_weight_kg)
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={key}"
     system_prompt = "You are an environmental transport modeling engine. Calculate distance in miles and return clean JSON."
     query_text = f"Find shortest routing distance between {payload.origin} and {payload.destination} in miles. Return JSON matching parameter distance_miles."
 
@@ -268,7 +268,7 @@ async def chat_expert(payload: ChatRequest):
     if not key:
         return {"reply": "Simulation Mode Active. Ask about Food, Transit, or Energy for static answers, or insert a Google Gemini API Key above."}
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={key}"
     system_prompt = (
         "You are an expert Sustainability Data Scientist and Carbon Auditor. "
         "Formulate your responses to the user according to Gold Standard Scope 1, 2, and 3 calculations. Max 180 words."

@@ -418,6 +418,7 @@ export default function App() {
             items.push({
               name: name.substring(0, 40),
               cost,
+              co2: co2Est,
               footprint: `~${co2Est} kg CO₂ (estimated)`
             });
           }
@@ -425,7 +426,7 @@ export default function App() {
       }
 
       if (items.length > 0) {
-        const totalCo2 = round(items.reduce((sum, i) => sum + parseFloat(i.footprint), 0), 1);
+        const totalCo2 = round(items.reduce((sum, i) => sum + (i.co2 || 0), 0), 1);
         setScanResult({
           type: 'receipt',
           store: storeName || 'Receipt Scan',
