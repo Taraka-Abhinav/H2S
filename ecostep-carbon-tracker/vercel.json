@@ -3,12 +3,14 @@
   "experimentalServices": {
     "frontend": {
       "root": "frontend",
-      "framework": "create-react-app"
+      "framework": "create-react-app",
+      "routePrefix": "/"
     },
     "backend": {
       "root": "backend",
       "framework": "fastapi",
-      "entrypoint": "main.py"
+      "entrypoint": "main.py",
+      "routePrefix": "/api"
     }
   }
 }
