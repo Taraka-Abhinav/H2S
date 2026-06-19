@@ -833,7 +833,8 @@ export default function App() {
 
           <div className="flex items-center space-x-3">
             <input
-              type="text"
+              type="password"
+              aria-label="Gemini API Key"
               value={userApiKey}
               onChange={(e) => setUserApiKey(e.target.value)}
               placeholder="Gemini API Key"
@@ -935,9 +936,9 @@ export default function App() {
                   <option value="electric">Electric (EV)</option>
                   <option value="flight">Passenger Flight</option>
                 </select>
-                <input type="number" value={payloadWeight} onChange={(e) => setPayloadWeight(e.target.value)}
+                <input type="number" aria-label="Payload Weight" value={payloadWeight} onChange={(e) => setPayloadWeight(e.target.value)}
                   placeholder="Cargo (kg)" className="bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2.5 text-white focus:border-emerald-500 outline-none font-bold" />
-                <input type="number" step="0.01" value={customEfficiency} onChange={(e) => setCustomEfficiency(e.target.value)}
+                <input type="number" aria-label="Custom Efficiency" step="0.01" value={customEfficiency} onChange={(e) => setCustomEfficiency(e.target.value)}
                   placeholder="Efficiency L/100km" className="bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2.5 text-white focus:border-emerald-500 outline-none font-bold" />
                 {mapOrigin && mapDest && (
                   <button onClick={recalculateRoute} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-black py-2.5 rounded-xl transition-all">
@@ -1045,9 +1046,9 @@ export default function App() {
                   <option value="electricity">Grid Electricity (kWh)</option>
                   <option value="jet_fuel">Jet A-1 Fuel (Liters)</option>
                 </select>
-                <input type="number" step="0.01" value={fuelVolume} onChange={(e) => setFuelVolume(e.target.value)}
+                <input type="number" aria-label="Fuel Volume" step="0.01" value={fuelVolume} onChange={(e) => setFuelVolume(e.target.value)}
                   placeholder="Volume / Amount" className="bg-slate-900 border border-slate-800 text-xs rounded-xl px-4 py-3 text-white outline-none font-bold" required />
-                <input type="number" value={payloadWeight} onChange={(e) => setPayloadWeight(e.target.value)}
+                <input type="number" aria-label="Facility Size" value={payloadWeight} onChange={(e) => setPayloadWeight(e.target.value)}
                   placeholder="Payload (kg)" className="bg-slate-900 border border-slate-800 text-xs rounded-xl px-4 py-3 text-white outline-none font-bold" />
                 <button type="submit" disabled={isDirectAuditing}
                   className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold py-3 rounded-xl transition-all">
@@ -1362,7 +1363,7 @@ export default function App() {
                 )}
               </div>
               <form onSubmit={handleSendChat} className="p-4 border-t border-slate-800 bg-slate-950/60 flex space-x-2">
-                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                <input type="text" aria-label="Chat Input" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask about carbon reduction strategies..."
                   className="flex-1 bg-slate-900 border border-slate-800 text-xs rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500 font-bold" />
                 <button type="submit" disabled={isChatLoading}
