@@ -2,7 +2,7 @@
 
 [![Quality Gate](https://github.com/Taraka-Abhinav/H2S/actions/workflows/ci.yml/badge.svg)](https://github.com/Taraka-Abhinav/H2S/actions/workflows/ci.yml)
 
-> **Smarter stadiums, better games.** A grounded, multilingual fan assistant and a live decision-support copilot for FIFA World Cup 2026 stadium operations.
+> **Smarter stadiums, better games.** A grounded, multilingual fan assistant and a shared-context decision-support copilot for FIFA World Cup 2026 stadium operations.
 
 **Hack2Skill Virtual Prompt Wars — Challenge 4: Smart Stadiums & Tournament Operations**
 
@@ -17,47 +17,48 @@ The project is a working hackathon prototype. Stadium facts and crowd readings a
 
 Large tournaments put tens of thousands of people, many languages, unfamiliar venue layouts, and time-critical operational decisions into the same space. Static signs and generic chatbots do not adapt to a fan's language, accessibility needs, or a changing crowd picture. Control-room teams also need recommendations that explain *where*, *why*, and *what action to consider*—not another unprioritized dashboard.
 
-FanPulse AI connects those needs in one responsive platform. Its GenAI layer is grounded in curated venue data and live zone context, while deterministic validation and fallback rules keep the experience useful when the model is unavailable.
+FanPulse AI connects those needs in one responsive platform. Its GenAI layer is grounded in curated mock venue data and a timestamped simulated zone context, while deterministic validation and fallback rules keep the experience useful when the model is unavailable.
 
 ## Try the complete experience
 
 | Route | Persona | What to demonstrate |
 | --- | --- | --- |
 | `/` | Everyone | Premium, responsive role selection and product overview |
-| `/fan` | Fan | Streaming multilingual guidance grounded in stadium facts |
-| `/staff` | Staff / volunteer | Live crowd simulation, zone map, chart, AI recommendations, and operational Q&A |
+| `/fan` | Fan | Streaming multilingual guidance that combines stadium facts, location/access preference, and an active advisory |
+| `/staff` | Staff / volunteer | Shared simulated feed, zone map, chart, attributable AI brief, action acknowledgement, and operational Q&A |
 
 ### Three-minute judge walkthrough
 
-1. Open `/fan` and select **How do I get to Section 114?** The assistant should identify Gate C and provide grounded directions.
-2. Switch the language to Spanish, French, Portuguese, or Arabic and ask another venue question.
-3. Ask for an accessible restroom or step-free route to demonstrate inclusive navigation.
+1. Open `/fan`, choose **West Plaza** and **Step-free route**, then select **How do I get to Section 114?** The assistant receives both preferences plus the active Zone C advisory.
+2. Confirm it does not claim Gate C2 is open without control-room authorization, then switch to Spanish, French, Portuguese, or Arabic.
+3. Ask for an accessible restroom or lower-sensory route to demonstrate contextual inclusive navigation.
 4. Open `/staff`. Point out Zone C above the 85% threshold, the trend indicator, and the eight-zone occupancy chart.
-5. Select **Refresh AI insights**. The response is schema-validated, priority-sorted, and labeled as either a Gemini-enhanced brief or the deterministic safety engine.
-6. Ask the operations copilot: **Which gate should relieve Zone C?** It receives the current zone snapshot, not stale hard-coded context.
+5. Select **Refresh AI brief**. The response is schema-validated, priority-sorted, stamped with source/snapshot/time, and labeled Gemini or deterministic.
+6. Acknowledge and resolve one card, then wait for new telemetry: the original brief remains pinned and is marked stale rather than silently overwritten.
+7. Ask the operations copilot: **Which gate should relieve Zone C?** It reads the same server snapshot and phase as the dashboard.
 
 ## Challenge alignment
 
 | Challenge expectation | FanPulse AI implementation |
 | --- | --- |
-| Smart, dynamic assistant | Streaming fan chat plus a separate staff copilot; the staff context changes with the simulated feed |
-| Logical decision making | Explicit occupancy thresholds, trend-aware prioritization, named-zone actions, structured output, and a deterministic fallback |
+| Smart, dynamic assistant | Streaming fan chat plus a separate staff copilot; both use the same timestamped matchday adapter |
+| Logical decision making | Phase-aware policy, explicit thresholds, trend-aware risk, contextual rerouting, named owner/recheck windows, grounded output, and deterministic fallback |
 | Navigation | Gate-to-section mapping and step-by-step stadium guidance |
-| Crowd management | Eight zones, density states, trends, 15-second updates, alerts, charting, and overflow-gate recommendations |
+| Crowd management | Eight canonical zones, density/trend states, 15-second shared snapshots, active advisories, charting, and controlled overflow-gate recommendations |
 | Accessibility | Step-free routes, accessible restrooms and parking, nursing and quiet rooms, hearing-loop information, semantic labels, live announcements, visible focus, and reduced-motion support |
 | Transportation | Shuttle schedules, rail, parking, accessible parking, airport shuttle, and rideshare pickup guidance |
 | Sustainability | Recycling hubs, water refill stations, EV charging, bike valet, and low-carbon rail/shuttle guidance |
 | Multilingual assistance | Auto-detection plus manual override for English, Spanish, Portuguese, French, and Arabic |
-| Operational intelligence | Gemini-generated structured briefs and free-form questions grounded in the current crowd snapshot |
-| Real-time decision support | Occupancy jitter every 15 seconds; current readings are passed to both staff AI workflows |
+| Operational intelligence | Gemini structured briefs and free-form Q&A grounded in the current phase, advisory, and exact snapshot |
+| Real-time decision support | A replaceable `CrowdFeed` adapter emits shared timestamped snapshots; stale insight requests are rejected and existing briefs are visibly marked stale |
 
 ## Evaluation evidence
 
 | Evaluation area | Evidence in this repository |
 | --- | --- |
-| **Code Quality** | Strict TypeScript, typed domain models, small role-focused components, shared schemas, centralized AI configuration, linting, and documented architecture |
+| **Code Quality** | Strict TypeScript with unchecked-index/optional-property checks, typed domain policy and adapters, thin routes/pages, role-focused components/hooks, shared runtime contracts, and documented boundaries |
 | **Security** | Server-only secret, 32 KiB body limit, Zod contracts, canonical sensor data, origin checks, scoped rate limits, security headers, sanitized errors, safe Markdown, and explicit threat model |
-| **Efficiency** | Relevant-context retrieval, on-demand model calls, client-side sensor simulation, capped history/tokens, 45-second insight cache, compact JSON, and no database round trips |
+| **Efficiency** | Relevant-context retrieval, on-demand model calls, deterministic server simulation, capped history/tokens, exact-snapshot cache, compact JSON, hidden-tab polling pause, and no database round trips |
 | **Testing** | Vitest unit and route tests, Testing Library interaction tests, axe accessibility checks, enforced coverage thresholds, type checking, linting, and production build verification |
 | **Accessibility** | Semantic controls, accessible names, keyboard paths, live/error announcements, non-color density labels, visible focus, responsive design, reduced motion, and inclusive venue content |
 | **Problem Statement Alignment** | One Challenge 4 platform directly demonstrates navigation, crowd management, accessibility, transportation, sustainability, multilingual support, and live operational decisions |
@@ -66,13 +67,13 @@ FanPulse AI connects those needs in one responsive platform. Its GenAI layer is 
 
 ### Fan assistant
 
-The fan request is sent to `/api/chat` with the chosen language. The server selects relevant categories from the curated knowledge base in `lib/stadiumData.ts`, instructs the model not to invent locations or policies, and streams the answer back to the interface. Unknown queries safely receive the full knowledge base. Only eight sanitized text messages, 2,000 characters each and 8,000 characters total, can reach the model.
+The fan request is sent to `/api/chat` with validated location, access preference, and language enums. The server selects relevant categories from the typed knowledge base, adds the current match phase/advisory from `CrowdFeed`, and streams the answer. Active advisories override static routes. Unknown queries safely receive the full knowledge base. Only eight sanitized text messages, 2,000 characters each and 8,000 characters total, can reach the model.
 
 If a fact is not in the knowledge base, the assistant is instructed to say so and direct the fan to Guest Services. Emergency prompts prioritize the nearest steward or emergency services.
 
 ### Staff decision support
 
-The dashboard starts from eight mock zones and applies small, bounded occupancy changes every 15 seconds. Density is calculated deterministically:
+`SimulatedCrowdFeed` generates one deterministic, timestamped eight-zone snapshot per 15-second bucket. `/api/telemetry`, fan chat, staff chat, and insights all read that adapter. Density is calculated deterministically:
 
 | Occupancy | State | Operational meaning |
 | --- | --- | --- |
@@ -80,16 +81,16 @@ The dashboard starts from eight mock zones and applies small, bounded occupancy 
 | 70–85% | Moderate | Monitor, especially when trending upward |
 | Above 85% | Critical | Prioritize intervention and verify with control room |
 
-For operational recommendations, occupancy and trend first produce a deterministic risk score: `up` adds 8 points, `stable` adds 0, and `down` subtracts 6. Gemini rewrites those trusted assessments into concise cards; the server restores the deterministic priority, rejects duplicate/unknown zones and unsupported gate claims, then sorts the result high-to-low. If generation or grounding fails, the same deterministic assessment is returned with `source: "rules"`. The model can explain advice; it cannot operate gates or safety systems.
+For operational recommendations, occupancy, trend, and match phase first produce a deterministic baseline. Gemini rewrites those trusted assessments into concise cards; the server restores priority, owner, and recheck interval, rejects duplicate/unknown zones and unsupported gate claims, then sorts high-to-low. Each brief carries a source, snapshot ID, and generation time. A newer feed marks it stale without replacing it, and staff can acknowledge/resolve actions. If generation or grounding fails, the deterministic assessment is returned with `source: "rules"`. The model cannot operate gates or safety systems.
 
 ## GenAI implementation
 
-- **Model routing:** Gemini 3.5 Flash handles multilingual fan/staff conversation; Gemini 3.1 Flash-Lite handles bounded structured operations briefs at lower latency and cost.
-- **Grounding:** curated stadium knowledge for fans; the latest zone snapshot for staff.
+- **Model routing:** Gemini 3.5 Flash handles multilingual fan guidance; Gemini 3.1 Flash-Lite handles staff Q&A and bounded structured operations briefs at lower latency and cost.
+- **Grounding:** typed mock venue facts with provenance plus one shared matchday snapshot for both personas.
 - **Streaming:** fan and staff chat use streamed UI messages for fast perceived response.
-- **Structured generation:** recommendations conform to a bounded Zod schema: `priority`, `zone`, `issue`, and `recommendation`.
+- **Structured generation:** recommendations conform to a bounded Zod schema covering priority, zone, issue, action, owner, and recheck interval.
 - **Hallucination controls:** bounded context, deterministic safety baselines, explicit “do not invent” rules, named source data, and a Guest Services fallback.
-- **Human-in-the-loop safety:** operational recommendations explicitly require control-room verification before closing gates or redirecting crowds.
+- **Human-in-the-loop safety:** operational recommendations require control-room verification and expose acknowledgement/resolution state; Gate C2 is never automatic.
 - **Resilience:** the insights route provides a deterministic safety fallback when Gemini is unavailable or its output fails grounding checks.
 - **Separation of concerns:** fan chat (`/api/chat`) and staff chat (`/api/chat/staff`) have independent validation and rate-limit scopes.
 
@@ -113,7 +114,7 @@ Accessibility is part of the workflow, not a separate marketing mode:
 - `.env*.local` is excluded from Git, and `.env.example` contains no secret.
 - AI routes require JSON, enforce a 32 KiB raw-body limit, validate same-origin browser requests, and return non-cacheable responses.
 - Chat content is reduced to sanitized text; tool/file/metadata parts are discarded, and the latest valid message must come from the user.
-- Staff snapshots accept only unique zone IDs A–H, integer occupancy, and a known trend. Names and capacities are restored from trusted server data, preventing prompt injection through sensor labels.
+- Sensor snapshots are generated from canonical server data; client-provided labels/readings never enter AI prompts. Insight requests carry only a bounded snapshot ID and stale IDs receive HTTP 409.
 - Best-effort per-instance limits allow 12 fan chats, 6 staff chats, or 4 insight generations per IP per minute and return `429` with `Retry-After`.
 - Model Markdown is restricted to safe text, emphasis, lists, and code—raw HTML, links, and images are not rendered.
 - CSP, clickjacking, MIME-sniffing, referrer, permissions, cross-origin, and transport-security headers are configured globally.
@@ -125,11 +126,11 @@ For the threat model, current safeguards, and production hardening needs, read [
 ## Efficiency choices
 
 - Static stadium knowledge stays in typed source data—no database round trip is needed for the demo—and only question-relevant categories are normally sent to Gemini.
-- Crowd movement is simulated client-side; the 15-second refresh does not call an AI model and pauses while the tab is hidden.
+- Crowd movement is produced by a deterministic server-side adapter; 15-second polling does not call an AI model and pauses while the tab is hidden.
 - Gemini is invoked only when a user asks a question or explicitly refreshes insights.
 - Chat keeps at most eight sanitized messages and caps output at 520 fan tokens or 420 staff tokens.
 - Structured insights use the low-latency Gemini 3.1 Flash-Lite model, are capped at 900 output tokens, use minimal thinking, a 24-second provider deadline, and one retry.
-- Equivalent insight snapshots (occupancy rounded to 5% buckets) reuse a bounded 45-second server cache.
+- Repeated requests for the exact same snapshot reuse a bounded 45-second server cache; prose is never reused across different percentages.
 - The eight-bar occupancy view uses lightweight HTML/CSS with an accessible summary and table instead of shipping a charting runtime.
 - Heavy fan and staff routes do not prefetch until the visitor chooses a persona.
 - Shared API and UI components avoid duplicate logic, while schema validation prevents expensive malformed requests.
@@ -209,24 +210,35 @@ app/
   api/chat/route.ts       # Streaming fan endpoint
   api/chat/staff/route.ts # Isolated streaming operations endpoint
   api/insights/route.ts   # Validated structured recommendations + fallback
+  api/telemetry/route.ts  # Canonical simulated matchday snapshot
   fan/page.tsx            # Fan experience
   staff/page.tsx          # Operations experience
 components/
-  ChatInterface.tsx       # Fan chat UI
-  StaffDashboard.tsx      # Live dashboard orchestration
-  StaffAskAI.tsx          # Current-snapshot operational Q&A
+  ChatInterface.tsx       # Fan chat orchestration
+  chat/                   # Transcript presentation
+  home/                   # Typed landing-page sections/content
+  staff/                  # Dashboard header, metrics, action workflow
+  StaffDashboard.tsx      # Thin operations composition
+  StaffAskAI.tsx          # Shared-snapshot operational Q&A
   ZoneMap.tsx             # Density and trend visualization
   OccupancyChart.tsx      # Responsive occupancy chart
 lib/
   ai.ts                   # Server-only model configuration
-  chatRoute.ts            # Shared secure streaming implementation
-  stadiumData.ts          # Typed mock venue knowledge base
-  crowdData.ts            # Typed mock zone data and simulation logic
-  insights.ts             # Recommendation schema and priority sorting
-  operations.ts           # Deterministic risk and recommendation engine
-  validation.ts           # Message sanitization and canonical zone data
-  requestSecurity.ts      # Body, origin, rate-limit, response, and log guards
-  insightCache.ts         # Bounded short-lived snapshot cache
+  chatPrompts.ts          # Context-aware fan/staff system prompts
+  chatRoute.ts            # Secure streaming orchestration
+  matchday.ts             # CrowdFeed contract + deterministic demo adapter
+  operationsPolicy.ts     # One source for thresholds and recheck policy
+  operations.ts           # Phase-aware deterministic decision engine
+  insightGeneration.ts    # Model generation and semantic grounding
+  insights.ts             # Shared request/response contracts
+  validation.ts           # Message and fan-context sanitization
+  requestSecurity.ts      # Stable HTTP/rate-limit facade
+  insightCache.ts         # Exact-snapshot bounded cache
+data/
+  stadiumKnowledge.ts     # Typed mock facts and explicit provenance
+hooks/
+  useMatchdayTelemetry.ts # Abortable, hidden-tab-aware polling
+  useOperationalBrief.ts  # Race-safe attributable brief lifecycle
 docs/
   ARCHITECTURE.md         # System design and data flows
 tests/
@@ -241,7 +253,7 @@ TESTING.md                # Automated coverage and manual acceptance plan
 
 - Venue and transport details are realistic mock data for demonstration, not live event guidance.
 - Crowd values simulate a sensor feed and are not connected to cameras, Wi-Fi analytics, ticket scans, or physical access control.
-- “Real-time” in this prototype means a client-side update every 15 seconds.
+- “Real-time” in this prototype means a shared simulated server snapshot refreshed every 15 seconds; it is not an approved venue sensor feed.
 - The fan assistant serves general stadium guidance, not medical, legal, or emergency dispatch advice.
 - Production staff access would require authentication, authorization, audit logs, distributed rate limiting, monitoring, and integration with approved venue systems.
 - Gemini output is probabilistic; schemas, grounded prompts, safe fallbacks, and human verification reduce risk but do not replace trained staff.

@@ -1,7 +1,7 @@
 import "server-only";
 import { google } from "@ai-sdk/google";
 
-export const AI_MODEL = "gemini-3.5-flash";
+export const FAN_AI_MODEL = "gemini-3.5-flash";
 export const OPERATIONS_AI_MODEL = "gemini-3.1-flash-lite";
 
 export class MissingApiKeyError extends Error {
@@ -18,7 +18,7 @@ export function getLanguageModel() {
     throw new MissingApiKeyError();
   }
 
-  return google(AI_MODEL);
+  return google(FAN_AI_MODEL);
 }
 
 export function getOperationsModel() {

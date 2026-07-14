@@ -22,33 +22,34 @@ import { POST, maxDuration } from "@/app/api/insights/route";
 import { resetInsightCacheForTests } from "@/lib/insightCache";
 import { resetRateLimitsForTests } from "@/lib/requestSecurity";
 
-const zones = [
-  { id: "A", currentOccupancy: 55, trend: "stable" },
-  { id: "C", currentOccupancy: 92, trend: "up" },
-  { id: "D", currentOccupancy: 78, trend: "up" },
-  { id: "E", currentOccupancy: 64, trend: "down" },
-] as const;
+const CURRENT_SNAPSHOT_ID = "demo-ingress-0";
 
 const groundedModelOutput = {
   output: {
     insights: [
       {
         priority: "low",
-        zone: "Zone A",
-        issue: "Stable occupancy provides relief capacity.",
-        recommendation: "Keep the north plaza available as a relief route.",
-      },
-      {
-        priority: "low",
         zone: "Zone C",
         issue: "West concourse is above its critical threshold.",
         recommendation: "Prepare Gate C2 after control-room confirmation.",
+        owner: "accessibility_team",
+        recheckMinutes: 15,
+      },
+      {
+        priority: "low",
+        zone: "Zone G",
+        issue: "South concourse occupancy is rising.",
+        recommendation: "Pause redirection and verify a relief route.",
+        owner: "transport_team",
+        recheckMinutes: 15,
       },
       {
         priority: "medium",
         zone: "Zone D",
         issue: "West upper occupancy is rising.",
-        recommendation: "Position volunteers and reassess in five minutes.",
+        recommendation: "Pause redirection and verify a relief route.",
+        owner: "accessibility_team",
+        recheckMinutes: 10,
       },
     ],
   },
@@ -66,10 +67,22 @@ function insightsRequest(
   });
 }
 
+function currentRequest(headers: Record<string, string> = {}): Request {
+  return insightsRequest({ snapshotId: CURRENT_SNAPSHOT_ID }, headers);
+}
+
+function latestGenerationOptions() {
+  const options = aiMocks.generateText.mock.calls.at(-1)?.at(0);
+  expect(options).toBeDefined();
+  if (!options) throw new Error("Expected generation options");
+  return options;
+}
+
 describe("POST /api/insights", () => {
   beforeEach(() => {
     resetInsightCacheForTests();
     resetRateLimitsForTests();
+    vi.spyOn(Date, "now").mockReturnValue(0);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     modelMocks.getOperationsModel.mockReturnValue({ modelId: "test-gemini" });
     aiMocks.generateText.mockResolvedValue(groundedModelOutput);
@@ -82,16 +95,28 @@ describe("POST /api/insights", () => {
   it.each([
     null,
     {},
-    { zones: [] },
-    { zones: [{ ...zones[0] }] },
-    { zones: [{ ...zones[0], currentOccupancy: 101 }, zones[1]] },
-    { zones: [{ ...zones[0], id: "Z" }, zones[1]] },
-    { zones: [zones[0], zones[0]] },
-  ])("rejects malformed or unsafe sensor input", async (body) => {
+    { snapshotId: "" },
+    { snapshotId: "x".repeat(81) },
+    { snapshotId: CURRENT_SNAPSHOT_ID, zones: [] },
+    { zones: [{ id: "C", currentOccupancy: 1 }] },
+  ])("rejects malformed, obsolete, or client-authored sensor input", async (body) => {
     const response = await POST(insightsRequest(body));
 
     expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
+    expect(aiMocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict with the current ID when the shared feed advances", async () => {
+    const response = await POST(
+      insightsRequest({ snapshotId: "demo-ingress-stale" })
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "The simulated feed changed. Refresh telemetry and try again.",
+      currentSnapshotId: CURRENT_SNAPSHOT_ID,
+    });
     expect(aiMocks.generateText).not.toHaveBeenCalled();
   });
 
@@ -119,49 +144,57 @@ describe("POST /api/insights", () => {
 
   it("rejects cross-origin browser requests", async () => {
     const response = await POST(
-      insightsRequest({ zones }, { origin: "https://malicious.example" })
+      currentRequest({ origin: "https://malicious.example" })
     );
 
     expect(response.status).toBe(403);
     expect(aiMocks.generateText).not.toHaveBeenCalled();
   });
 
-  it("grounds model cards against deterministic priorities and canonical zones", async () => {
-    const response = await POST(
-      insightsRequest({
-        zones: zones.map((zone) => ({
-          ...zone,
-          name: "Client-controlled name",
-          capacity: 999_999,
-        })),
-      })
-    );
+  it("grounds model cards against the deterministic shared snapshot", async () => {
+    const response = await POST(currentRequest());
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.source).toBe("ai");
+    expect(body).toMatchObject({
+      source: "ai",
+      snapshotId: CURRENT_SNAPSHOT_ID,
+    });
     expect(body.cached).toBeUndefined();
+    expect(body.generatedAt).toEqual(expect.any(String));
     expect(body.insights.map(({ zone }: { zone: string }) => zone)).toEqual([
       "Zone C",
+      "Zone G",
       "Zone D",
-      "Zone A",
     ]);
-    expect(body.insights[0].priority).toBe("high");
-    expect(body.insights[1].priority).toBe("high");
-    expect(body.insights[2].priority).toBe("low");
+    expect(body.insights[0]).toMatchObject({
+      priority: "high",
+      owner: "control_room",
+      recheckMinutes: 2,
+    });
+    expect(body.insights[1]).toMatchObject({
+      priority: "high",
+      owner: "steward_lead",
+      recheckMinutes: 2,
+    });
     expect(response.headers.get("x-request-id")).toBeTruthy();
     expect(response.headers.get("x-ratelimit-remaining")).toBe("3");
 
-    const options = aiMocks.generateText.mock.calls[0][0];
+    const options = latestGenerationOptions();
     expect(options.prompt).toContain("DETERMINISTIC SAFETY ASSESSMENTS");
-    expect(options.prompt).toContain("Zone C: 92% occupied, trend up");
-    expect(options.prompt).not.toContain("Client-controlled name");
-    expect(options.prompt).toContain("deterministic risk score 100/100");
+    expect(options.prompt).toContain("Snapshot: demo-ingress-0");
+    expect(options.prompt).toContain("Phase: ingress");
+    expect(options.prompt).toContain(
+      "Zone C — West Concourse (C): 91% occupied (capacity 4800), trend: up"
+    );
+    expect(options.prompt).toContain("owner=control_room, recheck=2m");
+    expect(options.prompt).toContain("deterministic risk score 99/100");
     expect(options.maxOutputTokens).toBe(900);
     expect(options.maxRetries).toBe(1);
     expect(options.temperature).toBeUndefined();
     expect(options.abortSignal).toBeInstanceOf(AbortSignal);
     expect(options.providerOptions.google.structuredOutputs).toBe(true);
+    expect(aiMocks.outputObject).toHaveBeenCalledOnce();
   });
 
   it("rejects invented gates and falls back to deterministic decisions", async () => {
@@ -173,75 +206,98 @@ describe("POST /api/insights", () => {
             zone: "Zone C",
             issue: "Busy.",
             recommendation: "Open Gate A1 immediately.",
+            owner: "control_room",
+            recheckMinutes: 2,
           },
           {
             priority: "low",
             zone: "Zone D",
             issue: "Rising.",
             recommendation: "Monitor the concourse.",
+            owner: "steward_lead",
+            recheckMinutes: 2,
           },
         ],
       },
     });
 
-    const response = await POST(insightsRequest({ zones }));
+    const response = await POST(currentRequest());
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.source).toBe("rules");
-    expect(body.insights[0]).toMatchObject({ priority: "high", zone: "Zone C" });
+    expect(body.insights[0]).toMatchObject({
+      priority: "high",
+      zone: "Zone C",
+      owner: "control_room",
+      recheckMinutes: 2,
+    });
     expect(body.insights[0].recommendation).toContain("overflow Gate C2");
-    expect(body.insights.every(({ recommendation }: { recommendation: string }) =>
-      !recommendation.includes("Gate A1")
-    )).toBe(true);
+    expect(
+      body.insights.every(
+        ({ recommendation }: { recommendation: string }) =>
+          !recommendation.includes("Gate A1")
+      )
+    ).toBe(true);
   });
 
   it("drops unknown and duplicate model zones before the grounding threshold", async () => {
+    const first = groundedModelOutput.output.insights.at(0);
+    if (!first) throw new Error("Expected grounded fixture");
     aiMocks.generateText.mockResolvedValue({
       output: {
         insights: [
-          groundedModelOutput.output.insights[0],
-          { ...groundedModelOutput.output.insights[0] },
+          first,
+          { ...first },
           {
             priority: "high",
             zone: "Zone Z",
             issue: "Unknown.",
             recommendation: "Redirect everyone.",
+            owner: "control_room",
+            recheckMinutes: 1,
           },
         ],
       },
     });
 
-    const response = await POST(insightsRequest({ zones }));
+    const response = await POST(currentRequest());
     expect((await response.json()).source).toBe("rules");
   });
 
   it("uses deterministic safety rules if the AI provider fails", async () => {
     aiMocks.generateText.mockRejectedValue(new Error("provider unavailable"));
 
-    const response = await POST(insightsRequest({ zones }));
+    const response = await POST(currentRequest());
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.source).toBe("rules");
     expect(body.insights).toHaveLength(4);
-    expect(body.insights[0]).toMatchObject({ priority: "high", zone: "Zone C" });
-    expect(body.insights[0].issue).toContain("risk score 100/100");
+    expect(body.insights[0]).toMatchObject({
+      priority: "high",
+      zone: "Zone C",
+      owner: "control_room",
+      recheckMinutes: 2,
+    });
+    expect(body.insights[0].issue).toContain("risk score 99/100");
     expect(body.insights[0].recommendation).toContain("overflow Gate C2");
   });
 
-  it("caches equivalent sensor snapshots to avoid repeat model calls", async () => {
-    const first = await POST(insightsRequest({ zones }));
+  it("caches the exact shared snapshot and retains its original generated time", async () => {
+    const first = await POST(currentRequest());
+    const firstBody = await first.json();
     expect(first.status).toBe(200);
 
-    const equivalent = zones.map((zone) => ({
-      ...zone,
-      currentOccupancy: zone.id === "C" ? 91 : zone.currentOccupancy,
-    }));
-    const second = await POST(insightsRequest({ zones: [...equivalent].reverse() }));
+    const second = await POST(currentRequest());
     const secondBody = await second.json();
 
-    expect(secondBody).toMatchObject({ source: "ai", cached: true });
+    expect(secondBody).toMatchObject({
+      source: "ai",
+      snapshotId: CURRENT_SNAPSHOT_ID,
+      generatedAt: firstBody.generatedAt,
+      cached: true,
+    });
     expect(aiMocks.generateText).toHaveBeenCalledOnce();
     expect(second.headers.get("x-ratelimit-remaining")).toBe("2");
   });
@@ -249,10 +305,10 @@ describe("POST /api/insights", () => {
   it("enforces the stricter staff-insights request limit", async () => {
     const headers = { "x-real-ip": "198.51.100.90" };
     for (let index = 0; index < 4; index += 1) {
-      expect((await POST(insightsRequest({ zones }, headers))).status).toBe(200);
+      expect((await POST(currentRequest(headers))).status).toBe(200);
     }
 
-    const blocked = await POST(insightsRequest({ zones }, headers));
+    const blocked = await POST(currentRequest(headers));
     expect(blocked.status).toBe(429);
     expect(blocked.headers.get("retry-after")).toBeTruthy();
   });

@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { StaffDashboard } from "@/components/StaffDashboard";
+
+export const metadata: Metadata = {
+  title: "Operations dashboard",
+  description:
+    "Shared simulated matchday telemetry with grounded, human-reviewed stadium operations recommendations.",
+};
 
 export default function StaffPage() {
   return (

@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { ChatInterface } from "@/components/ChatInterface";
+
+export const metadata: Metadata = {
+  title: "Fan assistant",
+  description:
+    "Context-aware multilingual stadium navigation, accessibility, transport, and venue guidance.",
+};
 
 export default function FanPage() {
   return (

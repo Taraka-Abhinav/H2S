@@ -1,46 +1,28 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { DefaultChatTransport } from "ai";
+import { useMemo, useState } from "react";
 import { Loader2, Send, Sparkles } from "lucide-react";
-import { type Zone } from "@/lib/crowdData";
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
+import { SafeMarkdown, messageText } from "./SafeMarkdown";
 
-function getMessageText(message: UIMessage | undefined): string {
-  if (!message) return "";
-  return message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-}
-
-interface StaffAskAIProps {
-  zones: Zone[];
-}
-
-export function StaffAskAI({ zones }: StaffAskAIProps) {
+export function StaffAskAI() {
   const [input, setInput] = useState("");
-  const zonesRef = useRef(zones);
-  zonesRef.current = zones;
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat/staff",
-        body: () => ({
-          zones: zonesRef.current,
-          languageOverride: "en",
-        }),
+        body: () => ({ languageOverride: "en" }),
       }),
     []
   );
 
   const { messages, sendMessage, status, error } = useChat({ transport });
   const isBusy = status === "submitted" || status === "streaming";
-  const lastAnswer = getMessageText(
+  const lastAnswer = messageText(
     [...messages].reverse().find((message) => message.role === "assistant")
   );
 
@@ -52,8 +34,8 @@ export function StaffAskAI({ zones }: StaffAskAIProps) {
             <Sparkles className="h-4 w-4" aria-hidden="true" />
             <span className="text-xs font-semibold uppercase tracking-[0.16em]">Ops copilot</span>
           </div>
-          <h2 className="text-lg font-semibold text-white">Ask about live operations</h2>
-          <p className="mt-1 text-sm text-zinc-500">Answers use the current zone snapshot.</p>
+          <h2 className="text-lg font-semibold text-white">Ask about current operations</h2>
+          <p className="mt-1 text-sm text-zinc-500">Answers use the shared server snapshot.</p>
         </div>
       </div>
 
@@ -91,21 +73,15 @@ export function StaffAskAI({ zones }: StaffAskAIProps) {
       {isBusy && !lastAnswer && (
         <div className="mt-4 flex items-center gap-2 text-sm text-zinc-500">
           <Loader2 className="h-4 w-4 animate-spin text-fifa-gold" />
-          Analyzing the live feed…
+          Analyzing the shared feed…
         </div>
       )}
 
       {lastAnswer && (
         <div className="mt-4 rounded-xl border border-fifa-gold/20 bg-fifa-gold/[0.06] p-4">
-          <div dir="auto" className="text-sm leading-6 text-zinc-200 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
-            <ReactMarkdown
-              skipHtml
-              allowedElements={["p", "strong", "em", "ul", "ol", "li", "code"]}
-              unwrapDisallowed
-            >
-              {lastAnswer}
-            </ReactMarkdown>
-          </div>
+          <SafeMarkdown className="text-sm leading-6 text-zinc-200 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
+            {lastAnswer}
+          </SafeMarkdown>
         </div>
       )}
     </Card>

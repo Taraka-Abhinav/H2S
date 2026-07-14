@@ -1,15 +1,12 @@
 "use client";
 
-export type LanguageOption = "auto" | "en" | "es" | "pt" | "fr" | "ar";
+import {
+  LANGUAGE_OPTIONS,
+  parseLanguage,
+  type LanguageOverride,
+} from "@/lib/languages";
 
-const LANGUAGES: { value: LanguageOption; label: string }[] = [
-  { value: "auto", label: "Auto-detect" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Español" },
-  { value: "pt", label: "Português" },
-  { value: "fr", label: "Français" },
-  { value: "ar", label: "العربية" },
-];
+export type LanguageOption = LanguageOverride;
 
 interface LanguageSelectorProps {
   value: LanguageOption;
@@ -19,18 +16,24 @@ interface LanguageSelectorProps {
 export function LanguageSelector({ value, onChange }: LanguageSelectorProps) {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
-      <label htmlFor="language-select" className="whitespace-nowrap text-xs font-medium text-zinc-500">
+      <label
+        htmlFor="language-select"
+        className="whitespace-nowrap text-xs font-medium text-zinc-500"
+      >
         Reply in
       </label>
       <select
         id="language-select"
         value={value}
-        onChange={(e) => onChange(e.target.value as LanguageOption)}
+        onChange={(event) => {
+          const nextLanguage = parseLanguage(event.target.value);
+          if (nextLanguage) onChange(nextLanguage);
+        }}
         className="rounded-md bg-transparent px-1 py-0.5 text-sm font-medium text-zinc-200 outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
       >
-        {LANGUAGES.map((lang) => (
-          <option key={lang.value} value={lang.value}>
-            {lang.label}
+        {LANGUAGE_OPTIONS.map((language) => (
+          <option key={language.value} value={language.value}>
+            {language.label}
           </option>
         ))}
       </select>

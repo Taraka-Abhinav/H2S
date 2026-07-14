@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: "%s | FanPulse AI",
   },
   description:
-    "A multilingual fan assistant and live stadium operations copilot for FIFA World Cup 2026.",
+    "A multilingual fan assistant and simulated stadium operations copilot for a FIFA World Cup 2026 challenge prototype.",
   keywords: ["stadium operations", "fan experience", "FIFA World Cup 2026", "AI assistant"],
 };
 
@@ -21,7 +21,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen bg-ink`}>

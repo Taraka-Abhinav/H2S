@@ -1,45 +1,39 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { Bot, CircleStop, Radio, Send, ShieldCheck } from "lucide-react";
+import { ChatTranscript } from "@/components/chat/ChatTranscript";
+import { FanContextControls } from "@/components/FanContextControls";
+import { LanguageSelector, type LanguageOption } from "@/components/LanguageSelector";
 import {
-  Bot,
-  CircleStop,
-  Loader2,
-  Radio,
-  Send,
-  ShieldCheck,
-  User,
-} from "lucide-react";
-import { LanguageSelector, type LanguageOption } from "./LanguageSelector";
-import { SuggestionButtons, FAN_SUGGESTIONS } from "./SuggestionButtons";
-import { Button } from "./ui/Button";
-
-function getMessageText(message: UIMessage): string {
-  return message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-}
+  FAN_SUGGESTIONS,
+  SuggestionButtons,
+} from "@/components/SuggestionButtons";
+import { Button } from "@/components/ui/Button";
+import { useMatchdayTelemetry } from "@/hooks/useMatchdayTelemetry";
+import { DEFAULT_FAN_CONTEXT, type FanContext } from "@/lib/matchday";
 
 export function ChatInterface() {
   const [language, setLanguage] = useState<LanguageOption>("auto");
+  const [fanContext, setFanContext] = useState<FanContext>(DEFAULT_FAN_CONTEXT);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { snapshot } = useMatchdayTelemetry();
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: { languageOverride: language },
+        body: { languageOverride: language, fanContext },
       }),
-    [language]
+    [fanContext, language]
   );
 
   const { messages, sendMessage, status, error, stop } = useChat({ transport });
   const isBusy = status === "submitted" || status === "streaming";
+  const activeAdvisory = snapshot?.advisories[0];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -82,7 +76,7 @@ export function ChatInterface() {
             </div>
             <div>
               <p className="text-sm font-semibold text-white">FanPulse guide</p>
-              <p className="text-xs text-zinc-500">Grounded in stadium information</p>
+              <p className="text-xs text-zinc-500">Grounded in venue + shared simulated context</p>
             </div>
           </div>
           <div className="hidden items-center gap-1.5 text-xs text-zinc-500 sm:flex">
@@ -92,97 +86,26 @@ export function ChatInterface() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6" aria-live="polite">
-          {messages.length === 0 ? (
-            <div className="mx-auto flex h-full max-w-lg flex-col items-center justify-center py-10 text-center">
-              <div className="stadium-orbit mb-7 flex h-24 w-24 items-center justify-center rounded-full">
-                <Bot className="h-10 w-10 text-fifa-green-light" aria-hidden="true" />
-              </div>
-              <p className="eyebrow mb-3">Welcome to matchday</p>
-              <h2 className="text-2xl font-semibold tracking-tight text-white">
-                Ask in your language.
-              </h2>
-              <p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">
-                Get precise directions and venue guidance in English, Spanish,
-                Portuguese, French, or Arabic.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {messages.map((message) => {
-                const text = getMessageText(message);
-                if (!text && message.role !== "assistant") return null;
-
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex items-end gap-2.5 ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    {message.role === "assistant" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fifa-green/15 text-fifa-green-light">
-                        <Bot className="h-4 w-4" aria-hidden="true" />
-                      </div>
-                    )}
-                    <div
-                      className={`max-w-[86%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[76%] ${
-                        message.role === "user"
-                          ? "rounded-br-md bg-fifa-blue text-white shadow-lg shadow-fifa-blue/10"
-                          : "rounded-bl-md border border-white/10 bg-white/[0.055] text-zinc-200"
-                      }`}
-                    >
-                      {text ? (
-                        <div dir="auto" className="[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
-                          <ReactMarkdown
-                            skipHtml
-                            allowedElements={["p", "strong", "em", "ul", "ol", "li", "code"]}
-                            unwrapDisallowed
-                          >
-                            {text}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <span className="flex items-center gap-2 text-zinc-400">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
-                        </span>
-                      )}
-                    </div>
-                    {message.role === "user" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fifa-blue/20 text-blue-300">
-                        <User className="h-4 w-4" aria-hidden="true" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {status === "submitted" && (
-                <div className="flex items-center gap-2.5 text-sm text-zinc-500">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-fifa-green/15">
-                    <Bot className="h-4 w-4 text-fifa-green-light" />
-                  </div>
-                  <Loader2 className="h-4 w-4 animate-spin text-fifa-green-light" />
-                  Finding the best route…
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
+          <ChatTranscript messages={messages} status={status} endRef={messagesEndRef} />
         </div>
 
         <div className="border-t border-white/10 bg-black/15 p-4 sm:p-5">
+          <FanContextControls value={fanContext} onChange={setFanContext} disabled={isBusy} />
+          {activeAdvisory && (
+            <p role="status" className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-3 py-2 text-xs leading-5 text-amber-100">
+              <span className="font-semibold">Simulated advisory:</span>{" "}
+              {activeAdvisory.publicGuidance}
+            </p>
+          )}
           {error && (
-            <div role="alert" className="mb-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
+            <div role="alert" className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
               {error.message || "The assistant could not respond. Please try again."}
             </div>
           )}
 
-          <SuggestionButtons
-            suggestions={FAN_SUGGESTIONS}
-            onSelect={submitMessage}
-            disabled={isBusy}
-          />
-
+          <div className="mt-3">
+            <SuggestionButtons suggestions={FAN_SUGGESTIONS} onSelect={submitMessage} disabled={isBusy} />
+          </div>
           <form
             className="mt-3 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] p-2 focus-within:border-fifa-green/50 focus-within:ring-2 focus-within:ring-fifa-green/10"
             onSubmit={(event) => {
@@ -202,11 +125,11 @@ export function ChatInterface() {
             />
             {isBusy ? (
               <Button type="button" variant="ghost" size="md" onClick={() => void stop()} aria-label="Stop response">
-                <CircleStop className="h-4 w-4" />
+                <CircleStop className="h-4 w-4" aria-hidden="true" />
               </Button>
             ) : (
               <Button type="submit" size="md" disabled={!input.trim()} aria-label="Send message">
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Send</span>
               </Button>
             )}

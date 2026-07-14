@@ -1,7 +1,13 @@
+import { OPERATIONS_POLICY } from "@/lib/operationsPolicy";
+
+export const ZONE_IDS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+
+export type ZoneId = (typeof ZONE_IDS)[number];
 export type Trend = "up" | "down" | "stable";
+export type OccupancyBand = "low" | "moderate" | "critical";
 
 export interface Zone {
-  id: string;
+  id: ZoneId;
   name: string;
   capacity: number;
   currentOccupancy: number;
@@ -19,36 +25,19 @@ export const initialZones: Zone[] = [
   { id: "H", name: "Zone H — South Plaza / Rideshare", capacity: 2800, currentOccupancy: 76, trend: "stable" },
 ];
 
-function randomDelta(): number {
-  return Math.floor(Math.random() * 7) - 2; // -2 to +4
-}
-
-function maybeFlipTrend(current: Trend): Trend {
-  if (Math.random() > 0.25) return current;
-  const options: Trend[] = ["up", "down", "stable"];
-  return options[Math.floor(Math.random() * options.length)];
-}
-
-export function jitterZones(zones: Zone[]): Zone[] {
-  return zones.map((zone) => {
-    const delta = randomDelta();
-    const nextOccupancy = Math.max(20, Math.min(98, zone.currentOccupancy + delta));
-    return {
-      ...zone,
-      currentOccupancy: nextOccupancy,
-      trend: maybeFlipTrend(zone.trend),
-    };
-  });
-}
-
-export function getOccupancyPercent(zone: Zone): number {
-  return zone.currentOccupancy;
+export function getOccupancyBand(occupancy: number): OccupancyBand {
+  if (occupancy < OPERATIONS_POLICY.occupancy.moderateAt) return "low";
+  if (occupancy <= OPERATIONS_POLICY.occupancy.criticalAbove) return "moderate";
+  return "critical";
 }
 
 export function getDensityColor(occupancy: number): "green" | "yellow" | "red" {
-  if (occupancy < 70) return "green";
-  if (occupancy <= 85) return "yellow";
-  return "red";
+  const colorByBand = {
+    low: "green",
+    moderate: "yellow",
+    critical: "red",
+  } as const;
+  return colorByBand[getOccupancyBand(occupancy)];
 }
 
 export const densityColors = {

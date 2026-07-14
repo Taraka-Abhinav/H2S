@@ -1,31 +1,22 @@
-import type { Zone } from "@/lib/crowdData";
 import type { Insight, InsightSource } from "@/lib/insights";
+import type { MatchdaySnapshot } from "@/lib/matchday";
 
 interface CachedInsights {
   insights: Insight[];
   source: InsightSource;
+  generatedAt: string;
   expiresAt: number;
 }
 
 const CACHE_TTL_MS = 45_000;
 const MAX_CACHE_ENTRIES = 40;
 
-const globalCache = globalThis as typeof globalThis & {
-  __fanPulseInsightCache?: Map<string, CachedInsights>;
-};
+const cache = new Map<string, CachedInsights>();
 
-const cache =
-  globalCache.__fanPulseInsightCache ??
-  (globalCache.__fanPulseInsightCache = new Map<string, CachedInsights>());
-
-export function getInsightSnapshotKey(zones: Zone[]): string {
-  return [...zones]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((zone) => {
-      const occupancyBucket = Math.round(zone.currentOccupancy / 5) * 5;
-      return `${zone.id}:${occupancyBucket}:${zone.trend}`;
-    })
-    .join("|");
+export function getInsightSnapshotKey(
+  snapshot: Pick<MatchdaySnapshot, "snapshotId">
+): string {
+  return snapshot.snapshotId;
 }
 
 export function getCachedInsights(
@@ -39,7 +30,11 @@ export function getCachedInsights(
     return null;
   }
 
-  return { insights: cached.insights, source: cached.source };
+  return {
+    insights: cached.insights,
+    source: cached.source,
+    generatedAt: cached.generatedAt,
+  };
 }
 
 export function setCachedInsights(
@@ -48,8 +43,8 @@ export function setCachedInsights(
   now = Date.now()
 ): void {
   if (cache.size >= MAX_CACHE_ENTRIES) {
-    const oldestKey = cache.keys().next().value as string | undefined;
-    if (oldestKey) cache.delete(oldestKey);
+    const oldest = cache.keys().next();
+    if (!oldest.done) cache.delete(oldest.value);
   }
 
   cache.set(key, { ...value, expiresAt: now + CACHE_TTL_MS });

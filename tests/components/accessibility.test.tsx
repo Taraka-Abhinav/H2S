@@ -19,18 +19,24 @@ const insights: Insight[] = [
     zone: "Zone C",
     issue: "92% occupied and trending up.",
     recommendation: "Prepare Gate C2 and deploy volunteers.",
+    owner: "control_room",
+    recheckMinutes: 2,
   },
   {
     priority: "medium",
     zone: "Zone D",
     issue: "78% occupied and trending up.",
     recommendation: "Monitor every five minutes.",
+    owner: "steward_lead",
+    recheckMinutes: 5,
   },
   {
     priority: "low",
     zone: "Zone A",
     issue: "55% occupied and stable.",
     recommendation: "Keep available as a relief route.",
+    owner: "accessibility_team",
+    recheckMinutes: 10,
   },
 ];
 
@@ -96,7 +102,7 @@ describe("component accessibility", () => {
 
     expect(
       screen.getByRole("img", {
-        name: /live stadium occupancy chart.*zone a 55 percent.*zone c 92 percent/i,
+        name: /simulated stadium occupancy chart.*zone a 55 percent.*zone c 92 percent/i,
       })
     ).toBeVisible();
     expect(

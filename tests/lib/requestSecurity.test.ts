@@ -190,7 +190,7 @@ describe("fixed-window rate limiting", () => {
     expect(checkRateLimit(second, "fan-chat", 1, 1).allowed).toBe(true);
   });
 
-  it("keeps the global client-bucket store bounded under address churn", () => {
+  it("keeps the per-instance client-bucket store bounded under address churn", () => {
     for (let index = 0; index < 2_000; index += 1) {
       const client = request("{}", {
         "content-type": "application/json",

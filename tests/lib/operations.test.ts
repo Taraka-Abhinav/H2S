@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Zone } from "@/lib/crowdData";
+import type { Insight } from "@/lib/insights";
 import {
   assessZone,
   buildOperationalInsights,
@@ -18,6 +19,12 @@ const makeZone = (overrides: Partial<Zone> = {}): Zone => ({
   ...overrides,
 });
 
+function insightAt(insights: Insight[], index: number): Insight {
+  const insight = insights.at(index);
+  if (!insight) throw new Error(`Expected insight at index ${index}`);
+  return insight;
+}
+
 describe("deterministic crowd risk scoring", () => {
   it.each([
     [50, "up", 58],
@@ -25,10 +32,10 @@ describe("deterministic crowd risk scoring", () => {
     [50, "down", 44],
     [97, "up", 100],
     [3, "down", 0],
-  ] as const)("scores %s%% trending %s as %s", (occupancy, trend, expected) => {
-    expect(calculateRiskScore(makeZone({ currentOccupancy: occupancy, trend }))).toBe(
-      expected
-    );
+  ] as const)("scores occupancy %s trending %s as %s", (occupancy, trend, expected) => {
+    expect(
+      calculateRiskScore(makeZone({ currentOccupancy: occupancy, trend }))
+    ).toBe(expected);
   });
 
   it.each([
@@ -66,16 +73,40 @@ describe("deterministic crowd risk scoring", () => {
 });
 
 describe("operational decision support", () => {
-  it("prioritizes Gate C2 for a high-risk west concourse", () => {
-    const [insight] = buildOperationalInsights([
+  it("prioritizes accountable Gate C2 preparation during ingress", () => {
+    const insights = buildOperationalInsights([
       makeZone({ id: "C", currentOccupancy: 86, trend: "up" }),
       makeZone({ id: "A", currentOccupancy: 50 }),
     ]);
+    const insight = insightAt(insights, 0);
 
-    expect(insight).toMatchObject({ priority: "high", zone: "Zone C" });
+    expect(insight).toMatchObject({
+      priority: "high",
+      zone: "Zone C",
+      owner: "control_room",
+      recheckMinutes: 2,
+    });
+    expect(insight.issue).toContain("during ingress");
     expect(insight.issue).toContain("deterministic risk score 94/100");
     expect(insight.recommendation).toContain("overflow Gate C2");
     expect(insight.recommendation).toContain("control-room confirmation");
+  });
+
+  it("changes the Gate C playbook outside ingress", () => {
+    const insight = insightAt(
+      buildOperationalInsights(
+        [
+          makeZone({ id: "C", currentOccupancy: 90, trend: "up" }),
+          makeZone({ id: "A", currentOccupancy: 50 }),
+        ],
+        "second_half"
+      ),
+      0
+    );
+
+    expect(insight.issue).toContain("during second_half");
+    expect(insight.recommendation).toContain("Hold Gate C2 in reserve");
+    expect(insight.recommendation).toContain("phase-appropriate relief route");
   });
 
   it("covers critical, high, and moderate response playbooks", () => {
@@ -85,25 +116,47 @@ describe("operational decision support", () => {
       makeZone({ id: "D", currentOccupancy: 70, trend: "stable" }),
     ]);
 
-    expect(insights[0].recommendation).toContain("Pause new redirection toward Zone G");
-    expect(insights[1].recommendation).toContain("Position volunteers at Zone B");
-    expect(insights[2].recommendation).toContain("five-minute intervals");
+    expect(insightAt(insights, 0).recommendation).toContain(
+      "Pause new redirection toward Zone G"
+    );
+    expect(insightAt(insights, 1).recommendation).toContain(
+      "Position volunteers at Zone B"
+    );
+    expect(insightAt(insights, 2).recommendation).toContain(
+      "five-minute intervals"
+    );
+    expect(insightAt(insights, 1)).toMatchObject({
+      owner: "steward_lead",
+      recheckMinutes: 5,
+    });
   });
 
-  it("keeps low-risk zones ready as relief capacity", () => {
-    const insights = buildOperationalInsights([
+  it("assigns transport risk to transport staff and low-risk relief to accessibility", () => {
+    const transport = insightAt(
+      buildOperationalInsights([
+        makeZone({ id: "H", currentOccupancy: 82, trend: "up" }),
+        makeZone({ id: "A", currentOccupancy: 40 }),
+      ]),
+      0
+    );
+    expect(transport.owner).toBe("transport_team");
+
+    const lowRisk = buildOperationalInsights([
       makeZone({ id: "A", currentOccupancy: 40 }),
       makeZone({ id: "F", currentOccupancy: 35 }),
     ]);
-
-    expect(insights).toHaveLength(2);
-    expect(insights.every(({ priority }) => priority === "low")).toBe(true);
-    expect(insights[0].recommendation).toContain("available as a relief route");
+    expect(lowRisk).toHaveLength(2);
+    expect(lowRisk.every(({ priority }) => priority === "low")).toBe(true);
+    expect(lowRisk.every(({ owner }) => owner === "accessibility_team")).toBe(true);
+    expect(insightAt(lowRisk, 0).recommendation).toContain(
+      "available as a relief route"
+    );
   });
 
   it("caps the dashboard at four recommendations", () => {
-    const zones = Array.from({ length: 8 }, (_, index) =>
-      makeZone({ id: String.fromCharCode(65 + index), currentOccupancy: 50 + index })
+    const ids: Zone["id"][] = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const zones = ids.map((id, index) =>
+      makeZone({ id, currentOccupancy: 50 + index })
     );
     expect(buildOperationalInsights(zones)).toHaveLength(4);
   });

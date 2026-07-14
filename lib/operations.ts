@@ -1,5 +1,7 @@
 import type { Zone } from "@/lib/crowdData";
-import type { Insight } from "@/lib/insights";
+import type { Insight, InsightOwner } from "@/lib/insights";
+import type { MatchPhase } from "@/lib/matchday";
+import { OPERATIONS_POLICY } from "@/lib/operationsPolicy";
 
 export type RiskLevel = "low" | "moderate" | "high" | "critical";
 
@@ -9,12 +11,6 @@ export interface ZoneAssessment {
   level: RiskLevel;
   estimatedFans: number;
 }
-
-const TREND_ADJUSTMENT = {
-  up: 8,
-  stable: 0,
-  down: -6,
-} as const;
 
 const LEVEL_ORDER: Record<RiskLevel, number> = {
   critical: 0,
@@ -26,14 +22,20 @@ const LEVEL_ORDER: Record<RiskLevel, number> = {
 export function calculateRiskScore(zone: Zone): number {
   return Math.max(
     0,
-    Math.min(100, Math.round(zone.currentOccupancy + TREND_ADJUSTMENT[zone.trend]))
+    Math.min(
+      100,
+      Math.round(
+        zone.currentOccupancy +
+          OPERATIONS_POLICY.risk.trendAdjustment[zone.trend]
+      )
+    )
   );
 }
 
 export function getRiskLevel(riskScore: number): RiskLevel {
-  if (riskScore >= 90) return "critical";
-  if (riskScore >= 80) return "high";
-  if (riskScore >= 65) return "moderate";
+  if (riskScore >= OPERATIONS_POLICY.risk.criticalAt) return "critical";
+  if (riskScore >= OPERATIONS_POLICY.risk.highAt) return "high";
+  if (riskScore >= OPERATIONS_POLICY.risk.moderateAt) return "moderate";
   return "low";
 }
 
@@ -58,11 +60,22 @@ export function rankZonesByRisk(zones: Zone[]): ZoneAssessment[] {
     );
 }
 
-function recommendedAction(assessment: ZoneAssessment): string {
+function ownerForAssessment(assessment: ZoneAssessment): InsightOwner {
+  if (assessment.zone.id === "C") return "control_room";
+  if (assessment.zone.id === "H") return "transport_team";
+  return assessment.level === "low" ? "accessibility_team" : "steward_lead";
+}
+
+function recommendedAction(
+  assessment: ZoneAssessment,
+  phase: MatchPhase
+): string {
   const { zone, level } = assessment;
 
   if (zone.id === "C" && (level === "critical" || level === "high")) {
-    return "Prepare overflow Gate C2, position two volunteers on the west concourse, and redirect new arrivals after control-room confirmation.";
+    return phase === "ingress"
+      ? "Prepare overflow Gate C2, position two stewards on the west concourse, and redirect new arrivals only after control-room confirmation."
+      : "Hold Gate C2 in reserve, position two stewards on the west concourse, and verify the phase-appropriate relief route with the control room.";
   }
 
   if (level === "critical") {
@@ -84,7 +97,10 @@ function recommendedAction(assessment: ZoneAssessment): string {
  * Safety-first decisions remain deterministic even when the model is unavailable.
  * Gemini explains and summarizes these facts; it is never the sole control layer.
  */
-export function buildOperationalInsights(zones: Zone[]): Insight[] {
+export function buildOperationalInsights(
+  zones: Zone[],
+  phase: MatchPhase = "ingress"
+): Insight[] {
   const ranked = rankZonesByRisk(zones);
   const resultCount = Math.min(4, Math.max(2, ranked.length));
 
@@ -96,8 +112,10 @@ export function buildOperationalInsights(zones: Zone[]): Insight[] {
           ? "medium"
           : "low",
     zone: `Zone ${assessment.zone.id}`,
-    issue: `${assessment.zone.currentOccupancy}% occupied, trending ${assessment.zone.trend}; deterministic risk score ${assessment.riskScore}/100.`,
-    recommendation: recommendedAction(assessment),
+    issue: `${assessment.zone.currentOccupancy}% occupied during ${phase}, trending ${assessment.zone.trend}; deterministic risk score ${assessment.riskScore}/100.`,
+    recommendation: recommendedAction(assessment, phase),
+    owner: ownerForAssessment(assessment),
+    recheckMinutes: OPERATIONS_POLICY.recheckMinutes[assessment.level],
   }));
 }
 

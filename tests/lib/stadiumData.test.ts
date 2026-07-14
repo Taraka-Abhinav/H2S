@@ -49,10 +49,10 @@ describe("stadium knowledge base integrity", () => {
 
   it.each([
     ["How do I reach Section 114?", ["GATES:", "SECTIONS:", "AMENITIES:"], ["TRANSPORT:", "SUSTAINABILITY:", "POLICIES AND FAQs:"]],
-    ["Accessible restroom", ["GATES:", "AMENITIES:"], ["SECTIONS:", "TRANSPORT:", "SUSTAINABILITY:"]],
+    ["Accessible restroom", ["GATES:", "SECTIONS:", "AMENITIES:"], ["TRANSPORT:", "SUSTAINABILITY:"]],
     ["When is the downtown shuttle?", ["TRANSPORT:"], ["GATES:", "SECTIONS:", "SUSTAINABILITY:"]],
     ["Recycle my bottle", ["SUSTAINABILITY:"], ["GATES:", "SECTIONS:", "TRANSPORT:"]],
-    ["What is the bag policy?", ["POLICIES AND FAQs:"], ["GATES:", "TRANSPORT:", "SUSTAINABILITY:"]],
+    ["What is the bag policy?", ["POLICIES AND FAQS:"], ["GATES:", "TRANSPORT:", "SUSTAINABILITY:"]],
   ])("selects only relevant facts for: %s", (question, included, excluded) => {
     const prompt = stadiumKnowledgePrompt(question);
     for (const heading of included) expect(prompt).toContain(heading);

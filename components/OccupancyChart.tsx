@@ -1,6 +1,7 @@
 "use client";
 
 import { type Zone, getDensityColor, densityColors } from "@/lib/crowdData";
+import { OPERATIONS_POLICY } from "@/lib/operationsPolicy";
 import { Card } from "./ui/Card";
 
 interface OccupancyChartProps {
@@ -17,7 +18,9 @@ export function OccupancyChart({ zones }: OccupancyChartProps) {
       <div className="mb-5 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-white">Occupancy by zone</h2>
-          <p className="mt-1 text-xs text-zinc-500">Critical threshold: above 85%</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Critical threshold: above {OPERATIONS_POLICY.occupancy.criticalAbove}%
+          </p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
           Native chart
@@ -26,12 +29,17 @@ export function OccupancyChart({ zones }: OccupancyChartProps) {
 
       <div
         role="img"
-        aria-label={`Live stadium occupancy chart. ${summary}.`}
+        aria-label={`Simulated stadium occupancy chart. ${summary}.`}
         className="relative h-64 border-b border-l border-white/10 px-2 pt-3 sm:h-72 sm:px-4"
       >
-        <div className="pointer-events-none absolute inset-x-0 top-[15%] border-t border-dashed border-red-400/60">
+        <div
+          className="pointer-events-none absolute inset-x-0 border-t border-dashed border-red-400/60"
+          style={{
+            top: `${100 - OPERATIONS_POLICY.occupancy.criticalAbove}%`,
+          }}
+        >
           <span className="absolute right-0 -top-5 text-[10px] font-medium text-red-300">
-            85% critical
+            {OPERATIONS_POLICY.occupancy.criticalAbove}% critical
           </span>
         </div>
 

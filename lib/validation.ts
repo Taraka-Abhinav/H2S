@@ -1,28 +1,12 @@
 import type { UIMessage } from "ai";
 import { z } from "zod";
-import { initialZones, type Zone } from "@/lib/crowdData";
-
-export const SUPPORTED_LANGUAGES = {
-  auto: "the same language as the fan's latest message",
-  en: "English",
-  es: "Spanish",
-  pt: "Portuguese",
-  fr: "French",
-  ar: "Arabic",
-} as const;
-
-export type LanguageOverride = keyof typeof SUPPORTED_LANGUAGES;
-
-const languageSchema = z.enum(["auto", "en", "es", "pt", "fr", "ar"]);
-const zoneIdSchema = z.enum(["A", "B", "C", "D", "E", "F", "G", "H"]);
-
-const zoneSnapshotSchema = z
-  .object({
-    id: zoneIdSchema,
-    currentOccupancy: z.number().int().min(0).max(100),
-    trend: z.enum(["up", "down", "stable"]),
-  })
-  .strip();
+import { languageSchema, type LanguageOverride } from "@/lib/languages";
+import {
+  ACCESS_PREFERENCES,
+  DEFAULT_FAN_CONTEXT,
+  FAN_LOCATIONS,
+  type FanContext,
+} from "@/lib/matchday";
 
 const messageEnvelopeSchema = z
   .object({
@@ -32,20 +16,32 @@ const messageEnvelopeSchema = z
   })
   .strip();
 
+const textPartSchema = z
+  .object({
+    type: z.literal("text"),
+    text: z.string(),
+  })
+  .strip();
+
+const fanContextSchema = z
+  .object({
+    currentLocation: z.enum(FAN_LOCATIONS),
+    accessPreference: z.enum(ACCESS_PREFERENCES),
+  })
+  .strip();
+
 const chatEnvelopeSchema = z
   .object({
     messages: z.array(z.unknown()).min(1).max(40),
     languageOverride: languageSchema.optional().default("auto"),
-    zones: z.array(z.unknown()).max(16).optional(),
+    fanContext: fanContextSchema.optional().default(DEFAULT_FAN_CONTEXT),
   })
   .strip();
-
-const canonicalZones = new Map(initialZones.map((zone) => [zone.id, zone]));
 
 export interface ValidatedChatPayload {
   messages: UIMessage[];
   language: LanguageOverride;
-  zones: Zone[];
+  fanContext: FanContext;
   latestQuestion: string;
 }
 
@@ -56,52 +52,13 @@ export type ValidationResult<T> =
 function sanitizeTextParts(parts: unknown[]): string {
   return parts
     .flatMap((part) => {
-      if (!part || typeof part !== "object") return [];
-      const candidate = part as { type?: unknown; text?: unknown };
-      if (candidate.type !== "text" || typeof candidate.text !== "string") {
-        return [];
-      }
-      const text = candidate.text.trim();
+      const candidate = textPartSchema.safeParse(part);
+      if (!candidate.success) return [];
+      const text = candidate.data.text.trim();
       return text ? [text.slice(0, 2_000)] : [];
     })
     .join("\n")
     .slice(0, 2_000);
-}
-
-export function canonicalizeZones(input: unknown): ValidationResult<Zone[]> {
-  if (!Array.isArray(input) || input.length < 2 || input.length > 8) {
-    return {
-      success: false,
-      error: "Between 2 and 8 valid zone snapshots are required.",
-    };
-  }
-
-  const parsed = input.map((zone) => zoneSnapshotSchema.safeParse(zone));
-  if (parsed.some((result) => !result.success)) {
-    return { success: false, error: "One or more zone snapshots are invalid." };
-  }
-
-  const snapshots = parsed.map((result) => {
-    if (!result.success) throw new Error("Unreachable validation state");
-    return result.data;
-  });
-  const ids = snapshots.map((snapshot) => snapshot.id);
-  if (new Set(ids).size !== ids.length) {
-    return { success: false, error: "Zone IDs must be unique." };
-  }
-
-  return {
-    success: true,
-    data: snapshots.map((snapshot) => {
-      const canonical = canonicalZones.get(snapshot.id);
-      if (!canonical) throw new Error("Unknown canonical zone");
-      return {
-        ...canonical,
-        currentOccupancy: snapshot.currentOccupancy,
-        trend: snapshot.trend,
-      };
-    }),
-  };
 }
 
 export function validateChatPayload(
@@ -139,19 +96,13 @@ export function validateChatPayload(
   }
 
   const latestQuestion = sanitizeTextParts(latest.parts);
-  const zonesResult =
-    audience === "staff"
-      ? canonicalizeZones(envelope.data.zones)
-      : { success: true as const, data: [] as Zone[] };
-
-  if (!zonesResult.success) return zonesResult;
-
   return {
     success: true,
     data: {
       messages: sanitized,
       language: envelope.data.languageOverride,
-      zones: zonesResult.data,
+      fanContext:
+        audience === "fan" ? envelope.data.fanContext : DEFAULT_FAN_CONTEXT,
       latestQuestion,
     },
   };
