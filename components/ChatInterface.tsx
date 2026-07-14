@@ -33,7 +33,7 @@ export function ChatInterface() {
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: { languageOverride: language, role: "fan" },
+        body: { languageOverride: language },
       }),
     [language]
   );
@@ -42,7 +42,10 @@ export function ChatInterface() {
   const isBusy = status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: status === "streaming" ? "auto" : "smooth",
+      block: "end",
+    });
   }, [messages, status]);
 
   const submitMessage = async (text: string) => {
@@ -129,8 +132,14 @@ export function ChatInterface() {
                       }`}
                     >
                       {text ? (
-                        <div className="[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
-                          <ReactMarkdown>{text}</ReactMarkdown>
+                        <div dir="auto" className="[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
+                          <ReactMarkdown
+                            skipHtml
+                            allowedElements={["p", "strong", "em", "ul", "ol", "li", "code"]}
+                            unwrapDisallowed
+                          >
+                            {text}
+                          </ReactMarkdown>
                         </div>
                       ) : (
                         <span className="flex items-center gap-2 text-zinc-400">

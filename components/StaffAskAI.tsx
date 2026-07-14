@@ -29,9 +29,8 @@ export function StaffAskAI({ zones }: StaffAskAIProps) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "/api/chat",
+        api: "/api/chat/staff",
         body: () => ({
-          role: "staff",
           zones: zonesRef.current,
           languageOverride: "en",
         }),
@@ -98,8 +97,14 @@ export function StaffAskAI({ zones }: StaffAskAIProps) {
 
       {lastAnswer && (
         <div className="mt-4 rounded-xl border border-fifa-gold/20 bg-fifa-gold/[0.06] p-4">
-          <div className="text-sm leading-6 text-zinc-200 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
-            <ReactMarkdown>{lastAnswer}</ReactMarkdown>
+          <div dir="auto" className="text-sm leading-6 text-zinc-200 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-2 [&_strong]:font-semibold [&_strong]:text-white [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
+            <ReactMarkdown
+              skipHtml
+              allowedElements={["p", "strong", "em", "ul", "ol", "li", "code"]}
+              unwrapDisallowed
+            >
+              {lastAnswer}
+            </ReactMarkdown>
           </div>
         </div>
       )}

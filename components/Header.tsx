@@ -17,13 +17,13 @@ export default function Header() {
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2" aria-label="Primary navigation">
-          <Link href="/fan" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-white">
+          <Link href="/fan" prefetch={false} className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light">
             Fan guide
           </Link>
-          <Link href="/staff" className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-white sm:block">
+          <Link href="/staff" prefetch={false} className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light sm:block">
             Staff ops
           </Link>
-          <Link href="/fan" className="ml-1 inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-ink transition-all hover:bg-fifa-green-light focus:outline-none focus:ring-2 focus:ring-fifa-green sm:ml-2">
+          <Link href="/fan" prefetch={false} className="ml-1 inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-ink transition-all hover:bg-fifa-green-light focus:outline-none focus:ring-2 focus:ring-fifa-green sm:ml-2">
             Ask AI <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </nav>

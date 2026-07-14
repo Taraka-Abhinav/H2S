@@ -30,7 +30,8 @@ export function HeroCard({ href, eyebrow, title, description, action, icon: Icon
   return (
     <Link
       href={href}
-      className={`group relative overflow-hidden rounded-[1.75rem] border border-white/[0.09] bg-white/[0.035] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 sm:p-9 ${accentStyle.glow}`}
+      prefetch={false}
+      className={`group relative overflow-hidden rounded-[1.75rem] border border-white/[0.09] bg-white/[0.035] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light focus-visible:ring-offset-2 focus-visible:ring-offset-ink sm:p-9 ${accentStyle.glow}`}
     >
       <span className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${accentStyle.line}`} />
       <div className="mb-10 flex items-start justify-between">

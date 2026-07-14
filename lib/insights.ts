@@ -2,9 +2,9 @@ import { z } from "zod";
 
 export const insightSchema = z.object({
   priority: z.enum(["high", "medium", "low"]),
-  zone: z.string().min(1),
-  issue: z.string().min(1),
-  recommendation: z.string().min(1),
+  zone: z.string().min(1).max(24),
+  issue: z.string().min(1).max(240),
+  recommendation: z.string().min(1).max(420),
 });
 
 export const insightResponseSchema = z.object({

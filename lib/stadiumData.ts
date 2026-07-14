@@ -266,27 +266,72 @@ export const stadiumKnowledgeBase: StadiumKnowledgeBase = {
   ],
 };
 
-export function stadiumKnowledgePrompt(): string {
+type KnowledgeCategory =
+  | "navigation"
+  | "amenities"
+  | "transport"
+  | "sustainability"
+  | "policies";
+
+const CATEGORY_TERMS: Record<KnowledgeCategory, string[]> = {
+  navigation: [
+    "gate", "section", "seat", "row", "route", "way", "where", "find",
+    "puerta", "sección", "asiento", "portão", "seção", "porte", "siège",
+    "بوابة", "قسم", "مقعد",
+  ],
+  amenities: [
+    "restroom", "toilet", "accessible", "wheelchair", "nursing", "quiet",
+    "sensory", "hearing", "first aid", "bathroom", "baño", "accesible",
+    "banheiro", "acessível", "toilettes", "حمام", "كرسي",
+  ],
+  transport: [
+    "shuttle", "parking", "metro", "train", "rail", "rideshare", "airport",
+    "downtown", "bus", "aparcamiento", "estacionamiento", "transporte",
+    "estacionamento", "navette", "مواصلات", "موقف",
+  ],
+  sustainability: [
+    "recycle", "recycling", "water", "refill", "carbon", "bottle", "compost",
+    "sustainable", "reciclar", "agua", "reciclagem", "água", "recyclage",
+    "eau", "إعادة", "مياه",
+  ],
+  policies: [
+    "bag", "re-entry", "reentry", "food", "beverage", "policy", "allowed",
+    "bolsa", "comida", "mochila", "sac", "nourriture", "حقيبة", "طعام",
+  ],
+};
+
+function categoryMatches(question: string, category: KnowledgeCategory): boolean {
+  return CATEGORY_TERMS[category].some((term) => question.includes(term));
+}
+
+/**
+ * Selects only the venue facts relevant to the latest question. Unknown queries
+ * intentionally fall back to the full knowledge base so recall is never traded
+ * for token savings.
+ */
+export function stadiumKnowledgePrompt(question = ""): string {
   const kb = stadiumKnowledgeBase;
+  const normalizedQuestion = question.toLocaleLowerCase();
+  const matchedCategories = (Object.keys(CATEGORY_TERMS) as KnowledgeCategory[]).filter(
+    (category) => categoryMatches(normalizedQuestion, category)
+  );
+  const includeAll = matchedCategories.length === 0;
+  const include = (category: KnowledgeCategory) =>
+    includeAll || matchedCategories.includes(category);
+
   return `
 STADIUM: ${kb.stadiumName} — ${kb.event}
 
-GATES:
-${kb.gates.map((g) => `- ${g.name} (${g.location}): sections ${g.nearestSections.join(", ")}. Access: ${g.accessibility}. ${g.notes || ""}`).join("\n")}
+${include("navigation") || include("amenities") ? `GATES:\n${kb.gates.map((g) => `- ${g.name} (${g.location}): sections ${g.nearestSections.join(", ")}. Access: ${g.accessibility}. ${g.notes || ""}`).join("\n")}` : ""}
 
-SECTIONS:
-${kb.sections.map((s) => `- ${s.name}: enter via ${s.gate}, ${s.level}, ${s.rowRange}. Nearby: ${s.nearestAmenities.join(", ")}`).join("\n")}
+${include("navigation") ? `SECTIONS:\n${kb.sections.map((s) => `- ${s.name}: enter via ${s.gate}, ${s.level}, ${s.rowRange}. Nearby: ${s.nearestAmenities.join(", ")}`).join("\n")}` : ""}
 
-AMENITIES:
-${kb.amenities.map((a) => `- ${a.name} [${a.type}]: ${a.location}. ${a.notes || ""}`).join("\n")}
+${include("amenities") || include("navigation") ? `AMENITIES:\n${kb.amenities.map((a) => `- ${a.name} [${a.type}]: ${a.location}. ${a.notes || ""}`).join("\n")}` : ""}
 
-TRANSPORT:
-${kb.transport.map((t) => `- ${t.name} [${t.type}]: ${t.location}. ${t.schedule ? `Schedule: ${t.schedule}. ` : ""}${t.notes || ""}`).join("\n")}
+${include("transport") ? `TRANSPORT:\n${kb.transport.map((t) => `- ${t.name} [${t.type}]: ${t.location}. ${t.schedule ? `Schedule: ${t.schedule}. ` : ""}${t.notes || ""}`).join("\n")}` : ""}
 
-SUSTAINABILITY:
-${kb.sustainability.map((s) => `- ${s.name} [${s.type}]: ${s.location}. ${s.accepts ? `Accepts: ${s.accepts.join(", ")}. ` : ""}${s.notes || ""}`).join("\n")}
+${include("sustainability") ? `SUSTAINABILITY:\n${kb.sustainability.map((s) => `- ${s.name} [${s.type}]: ${s.location}. ${s.accepts ? `Accepts: ${s.accepts.join(", ")}. ` : ""}${s.notes || ""}`).join("\n")}` : ""}
 
-FAQs:
-${kb.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")}
+${include("policies") ? `POLICIES AND FAQs:\n${kb.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")}` : ""}
 `.trim();
 }

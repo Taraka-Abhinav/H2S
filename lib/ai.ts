@@ -1,6 +1,8 @@
+import "server-only";
 import { google } from "@ai-sdk/google";
 
 export const AI_MODEL = "gemini-3.5-flash";
+export const OPERATIONS_AI_MODEL = "gemini-3.1-flash-lite";
 
 export class MissingApiKeyError extends Error {
   constructor() {
@@ -17,4 +19,12 @@ export function getLanguageModel() {
   }
 
   return google(AI_MODEL);
+}
+
+export function getOperationsModel() {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    throw new MissingApiKeyError();
+  }
+
+  return google(OPERATIONS_AI_MODEL);
 }

@@ -12,8 +12,8 @@ export default function Footer() {
           <span>World Cup 2026 concept</span>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/fan" className="transition-colors hover:text-white">Fan guide</Link>
-          <Link href="/staff" className="transition-colors hover:text-white">Staff operations</Link>
+          <Link href="/fan" prefetch={false} className="rounded transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light">Fan guide</Link>
+          <Link href="/staff" prefetch={false} className="rounded transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light">Staff operations</Link>
         </div>
       </div>
     </footer>

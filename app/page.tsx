@@ -19,7 +19,16 @@ const METRICS = [
   ["5", "fan languages"],
   ["8", "live stadium zones"],
   ["15s", "crowd refresh"],
-  ["24/7", "matchday context"],
+  ["2", "safety layers"],
+];
+
+const CHALLENGE_CAPABILITIES = [
+  [MapPinned, "Navigation", "Grounded section-to-gate directions with nearby venue services."],
+  [Activity, "Crowd management", "Capacity, trend, and deterministic risk scoring across eight zones."],
+  [Accessibility, "Accessibility", "Step-free routes, sensory spaces, hearing support, and accessible amenities."],
+  [Radio, "Transportation", "Metro, shuttle, parking, airport, and rideshare matchday guidance."],
+  [Waves, "Sustainability", "Water refill, recycling, compost, EV, and low-carbon travel choices."],
+  [Bot, "Operational intelligence", "Gemini briefs grounded by a deterministic safety fallback."],
 ];
 
 export default function Home() {
@@ -37,7 +46,7 @@ export default function Home() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fifa-green opacity-60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-fifa-green-light" />
               </span>
-              Built for FIFA World Cup 2026 matchdays
+              Hack2Skill Challenge 4 • FIFA World Cup 2026
             </div>
 
             <h1 className="max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl lg:text-[5.35rem]">
@@ -49,10 +58,10 @@ export default function Home() {
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href="/fan" className="inline-flex items-center justify-center gap-2 rounded-xl bg-fifa-green px-5 py-3.5 text-sm font-bold text-ink shadow-glow transition-all hover:-translate-y-0.5 hover:bg-fifa-green-light focus:outline-none focus:ring-2 focus:ring-fifa-green-light focus:ring-offset-2 focus:ring-offset-ink">
+              <Link href="/fan" prefetch={false} className="inline-flex items-center justify-center gap-2 rounded-xl bg-fifa-green px-5 py-3.5 text-sm font-bold text-ink shadow-glow transition-all hover:-translate-y-0.5 hover:bg-fifa-green-light focus:outline-none focus:ring-2 focus:ring-fifa-green-light focus:ring-offset-2 focus:ring-offset-ink">
                 Open fan assistant <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-              <Link href="/staff" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.045] px-5 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-white/40">
+              <Link href="/staff" prefetch={false} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.045] px-5 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-white/40">
                 View live operations <Activity className="h-4 w-4 text-blue-300" aria-hidden="true" />
               </Link>
             </div>
@@ -148,7 +157,55 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-y border-white/[0.07] bg-white/[0.018] py-24 sm:py-28">
+      <section className="border-y border-white/[0.07] bg-white/[0.018] py-24 sm:py-28" aria-labelledby="challenge-coverage-title">
+        <div className="container">
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div className="max-w-xl">
+              <p className="eyebrow">Challenge 4 coverage</p>
+              <h2 id="challenge-coverage-title" className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+                One matchday platform, six real operations outcomes.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-zinc-400">
+                FanPulse combines trusted venue knowledge, simulated live signals,
+                deterministic safety logic, and grounded GenAI so every answer is
+                useful even when the model is unavailable.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {CHALLENGE_CAPABILITIES.map(([Icon, title, description]) => {
+                const CapabilityIcon = Icon as typeof MapPinned;
+                return (
+                  <article key={title as string} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-fifa-green/10 text-fifa-green-light">
+                        <CapabilityIcon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <h3 className="font-semibold text-white">{title as string}</h3>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-zinc-500">{description as string}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-14 grid overflow-hidden rounded-3xl border border-white/[0.08] bg-black/15 md:grid-cols-3">
+            {[
+              ["01", "Observe", "Normalize trusted zone IDs, occupancy, capacity, and movement trend."],
+              ["02", "Decide", "Rank risk deterministically and select a safe, auditable response."],
+              ["03", "Explain", "Use Gemini to turn grounded facts into clear multilingual guidance."],
+            ].map(([step, title, description]) => (
+              <article key={step} className="border-b border-white/[0.08] p-6 last:border-0 md:border-b-0 md:border-r md:last:border-r-0 sm:p-7">
+                <p className="text-xs font-bold tracking-[0.2em] text-fifa-gold">{step}</p>
+                <h3 className="mt-4 text-xl font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 sm:py-28">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <p className="eyebrow">Designed for high-stakes moments</p>
@@ -180,7 +237,7 @@ export default function Home() {
             <p className="eyebrow">Ready for kickoff</p>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">A smarter stadium starts with one question.</h2>
             <p className="mt-5 text-base leading-7 text-zinc-400">Try the fan assistant, then watch the same venue come alive from the operations view.</p>
-            <Link href="/fan" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-ink transition-colors hover:bg-fifa-green-light">
+            <Link href="/fan" prefetch={false} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-ink transition-colors hover:bg-fifa-green-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fifa-green-light focus-visible:ring-offset-2 focus-visible:ring-offset-ink">
               Explore FanPulse AI <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

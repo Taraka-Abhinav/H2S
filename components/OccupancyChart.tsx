@@ -1,16 +1,5 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Cell,
-} from "recharts";
 import { type Zone, getDensityColor, densityColors } from "@/lib/crowdData";
 import { Card } from "./ui/Card";
 
@@ -19,58 +8,77 @@ interface OccupancyChartProps {
 }
 
 export function OccupancyChart({ zones }: OccupancyChartProps) {
-  const data = zones.map((z) => ({
-    zone: z.id,
-    occupancy: z.currentOccupancy,
-    name: z.name,
-  }));
+  const summary = zones
+    .map((zone) => `Zone ${zone.id} ${zone.currentOccupancy} percent`)
+    .join(", ");
 
   return (
     <Card className="p-4 sm:p-6" elevated>
-      <h2 className="mb-4 text-lg font-semibold text-white">Occupancy by Zone</h2>
-      <div className="h-64 w-full sm:h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis
-              dataKey="zone"
-              tick={{ fill: "#a1a1aa", fontSize: 12 }}
-              axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fill: "#a1a1aa", fontSize: 12 }}
-              axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-              tickFormatter={(v) => `${v}%`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1c1c1c",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "12px",
-                color: "#e4e4e7",
-              }}
-              formatter={(value) => [`${Number(value ?? 0)}%`, "Occupancy"]}
-              labelFormatter={(label) => {
-                const zone = zones.find((z) => z.id === label);
-                return zone?.name || `Zone ${label}`;
-              }}
-            />
-            <ReferenceLine
-              y={85}
-              stroke="#ef4444"
-              strokeDasharray="5 5"
-              label={{ value: "85% threshold", fill: "#ef4444", fontSize: 11 }}
-            />
-            <Bar dataKey="occupancy" radius={[6, 6, 0, 0]}>
-              {data.map((entry) => {
-                const color = densityColors[getDensityColor(entry.occupancy)].fill;
-                return <Cell key={entry.zone} fill={color} />;
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="mb-5 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Occupancy by zone</h2>
+          <p className="mt-1 text-xs text-zinc-500">Critical threshold: above 85%</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          Native chart
+        </span>
       </div>
+
+      <div
+        role="img"
+        aria-label={`Live stadium occupancy chart. ${summary}.`}
+        className="relative h-64 border-b border-l border-white/10 px-2 pt-3 sm:h-72 sm:px-4"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-[15%] border-t border-dashed border-red-400/60">
+          <span className="absolute right-0 -top-5 text-[10px] font-medium text-red-300">
+            85% critical
+          </span>
+        </div>
+
+        <div className="flex h-full items-end justify-around gap-2">
+          {zones.map((zone) => {
+            const density = getDensityColor(zone.currentOccupancy);
+            const fill = densityColors[density].fill;
+            return (
+              <div key={zone.id} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                <span className="mb-1 text-[10px] font-semibold text-zinc-300 sm:text-xs">
+                  {zone.currentOccupancy}%
+                </span>
+                <div className="flex h-[82%] w-full max-w-10 items-end rounded-t-md bg-white/[0.035]">
+                  <div
+                    className="w-full rounded-t-md transition-[height] duration-500 motion-reduce:transition-none"
+                    style={{
+                      height: `${zone.currentOccupancy}%`,
+                      backgroundColor: fill,
+                    }}
+                  />
+                </div>
+                <span className="mt-2 text-xs font-semibold text-zinc-400">{zone.id}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <table className="sr-only">
+        <caption>Current occupancy and movement trend by stadium zone</caption>
+        <thead>
+          <tr>
+            <th scope="col">Zone</th>
+            <th scope="col">Occupancy</th>
+            <th scope="col">Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          {zones.map((zone) => (
+            <tr key={zone.id}>
+              <th scope="row">Zone {zone.id}</th>
+              <td>{zone.currentOccupancy}%</td>
+              <td>{zone.trend}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </Card>
   );
 }

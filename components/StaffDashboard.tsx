@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gauge, Loader2, Radio, RefreshCw, TriangleAlert, Users } from "lucide-react";
 import { initialZones, jitterZones, type Zone } from "@/lib/crowdData";
 import { type Insight, type InsightSource } from "@/lib/insights";
+import { buildOperationalInsights, getOperationsMetrics } from "@/lib/operations";
 import { ZoneMap } from "@/components/ZoneMap";
 import { OccupancyChart } from "@/components/OccupancyChart";
 import { InsightCard } from "@/components/InsightCard";
@@ -13,30 +14,51 @@ import { Card } from "@/components/ui/Card";
 
 export function StaffDashboard() {
   const [zones, setZones] = useState<Zone[]>(initialZones);
-  const [insights, setInsights] = useState<Insight[]>([]);
-  const [insightSource, setInsightSource] = useState<InsightSource | null>(null);
+  const [insights, setInsights] = useState<Insight[]>(() =>
+    buildOperationalInsights(initialZones)
+  );
+  const [insightSource, setInsightSource] = useState<InsightSource | null>("rules");
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     setLastUpdated(new Date());
-    const id = setInterval(() => {
-      setZones((currentZones) => jitterZones(currentZones));
-      setLastUpdated(new Date());
-    }, 15_000);
-    return () => clearInterval(id);
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const stopUpdates = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    const startUpdates = () => {
+      stopUpdates();
+      if (document.hidden) return;
+      intervalId = setInterval(() => {
+        setZones((currentZones) => jitterZones(currentZones));
+        setLastUpdated(new Date());
+      }, 15_000);
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) stopUpdates();
+      else startUpdates();
+    };
+
+    handleVisibility();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      stopUpdates();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
-  const metrics = useMemo(() => {
-    const average = Math.round(zones.reduce((sum, zone) => sum + zone.currentOccupancy, 0) / zones.length);
-    const estimatedFans = zones.reduce(
-      (sum, zone) => sum + Math.round((zone.capacity * zone.currentOccupancy) / 100),
-      0
-    );
-    const critical = zones.filter((zone) => zone.currentOccupancy > 85).length;
-    return { average, estimatedFans, critical };
+  useEffect(() => {
+    setInsights(buildOperationalInsights(zones));
+    setInsightSource("rules");
   }, [zones]);
+
+  const metrics = useMemo(() => getOperationsMetrics(zones), [zones]);
 
   const refreshInsights = useCallback(async () => {
     setLoadingInsights(true);
@@ -76,20 +98,20 @@ export function StaffDashboard() {
           <p className="mt-2 text-sm text-zinc-500">Crowd pressure, movement trends, and AI decision support in one view.</p>
         </div>
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-          <span className="text-xs text-zinc-600">
+          <span aria-live="polite" className="text-xs text-zinc-600">
             Auto-refresh • {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "connecting…"}
           </span>
           <Button onClick={refreshInsights} disabled={loadingInsights} variant="primary">
-            {loadingInsights ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loadingInsights ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <RefreshCw aria-hidden="true" className="h-4 w-4" />}
             Refresh AI insights
           </Button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard icon={Gauge} color="blue" value={`${metrics.average}%`} label="Average occupancy" />
+        <MetricCard icon={Gauge} color="blue" value={`${metrics.averageOccupancy}%`} label="Average occupancy" />
         <MetricCard icon={Users} color="green" value={metrics.estimatedFans.toLocaleString()} label="Estimated fans in zones" />
-        <MetricCard icon={TriangleAlert} color="red" value={String(metrics.critical)} label="Critical zones above 85%" />
+        <MetricCard icon={TriangleAlert} color="red" value={String(metrics.criticalZones)} label="Critical risk zones" />
       </div>
 
       <ZoneMap zones={zones} />
@@ -106,7 +128,7 @@ export function StaffDashboard() {
             <h2 id="ai-recommendations-title" className="text-xl font-semibold text-white">AI recommendations</h2>
           </div>
           {insightSource && (
-            <span className="text-xs text-zinc-600">{insightSource === "ai" ? "Gemini analysis" : "Rule-based safety fallback"}</span>
+            <span className="text-xs text-zinc-600">{insightSource === "ai" ? "Gemini-enhanced brief" : "Deterministic safety engine"}</span>
           )}
         </div>
 
@@ -123,7 +145,7 @@ export function StaffDashboard() {
         )}
         {loadingInsights && (
           <Card className="flex items-center justify-center gap-2 p-8" elevated>
-            <Loader2 className="h-5 w-5 animate-spin text-fifa-green-light" />
+            <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-fifa-green-light" />
             <span className="text-sm text-zinc-400">Analyzing pressure points…</span>
           </Card>
         )}
@@ -155,7 +177,7 @@ const metricColors = {
 function MetricCard({ icon: Icon, color, value, label }: MetricCardProps) {
   return (
     <Card className="flex items-center gap-4 p-4 sm:p-5">
-      <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${metricColors[color]}`}><Icon className="h-5 w-5" /></span>
+      <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${metricColors[color]}`}><Icon aria-hidden="true" className="h-5 w-5" /></span>
       <div><p className="text-2xl font-semibold text-white">{value}</p><p className="text-xs text-zinc-500">{label}</p></div>
     </Card>
   );
